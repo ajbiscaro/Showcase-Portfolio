@@ -1,5 +1,45 @@
-/* PORTFOLIO FILTER STYLE
------------------------------------------------ */
+/*** Showcase Portfolio Styles ***/
+.portfolio-container {
+	margin: 0px auto;
+	max-width: 100%;
+}
+ul.portfolio-list {
+	float:left;
+	list-style: none; 
+}
+ul.portfolio-list li {
+	float: left;
+	display: inline-block;
+	margin-right: 20px;
+	padding-top: 10px;
+	width: 300px;
+}
+ul.portfolio-list li img {
+	border: 3px solid #000;
+	float: left;
+	margin-bottom: 15px;
+	width: 100%;
+}
+ul.portfolio-list li img:hover {
+	border: 3px solid #FF0000;
+}
+ul.portfolio-list li a {
+	color: #000;
+}
+ul.portfolio-list li a:hover {
+	color: #FF0000;
+	text-decoration: none;
+}
+ul.portfolio-list li h3 {
+	font-size: 18px;
+	font-weight: bold;
+	margin: 0px 0px 15px 0px;
+}
+ul.portfolio-list li p {
+	font-size: 14px;
+}
+
+/*** PORTFOLIO FILTER STYLE  ***/
 
 #portfolio-filter {
 	list-style-type: none;
@@ -20,43 +60,35 @@
 	color: #084a9a;
 }
 
-/*** Showcase Portfolio Styles ***/
-.portfolio-container {
+/*** Single Page Portfolio Styles Specific ***/
+.portfolio-page {
+	min-height: 500px;
+	padding-top: 100px;
+}
+.column-1 {
+	clear: both;		
+}
+ul.portfolio-list li.column-3 {
+	margin-right: 0;
+	width: 300px;
+}
+
+
+/*** Single Item Portfolio Styles Specific ***/
+.portfolio-single {
 	margin: 0px auto;
+	padding-top: 100px;
 }
-ul.portfolio-post-list {
-	list-style: none; 
-}
-.portfolio-post-item {
-	clear: both;
-	padding-top: 20px;
-}
-.portfolio-item-thumb {
-	border: 3px #000 solid;
-	float: left;
-	margin-right: 10px;
-}
-.portfolio-item-detail {
-	float: left;
-	font-weight: normal;
-	width: 245px;
-}
-.portfolio-item-detail h3 {
+.portfolio-single h3 {
 	font-size: 18px;
 	font-weight: bold;
-	margin: 0px 0px 15px 0px;
 }
-.portfolio-item-content p {
-	font-size: 16px;
-	margin-bottom: 15px;
+.portfolio-single img {
+	border: 3px solid #000;
+	margin-bottom: 30px;
 }
-.portfolio-text {
-	font-size: 16px;
-	margin-bottom: 5px;
-}
-.portfolio-text-desc {
-	font-weight: normal;
-	padding-left: 5px;
+.portfolio-single p {
+	font-size: 14px;
 }
 a.button {
 	background: #ce5144;
@@ -75,20 +107,6 @@ a.button:hover {
 	color: #ffff00;
 	text-decoration: none;
 }
-
-/* Single Portfolio Post Style Specifics */
-.portfolio-post {
-	margin: 0px auto;
-}
-.portfolio-item-img {
-	clear: both;
-	padding-top: 50px;
-}
-.portfolio-item h3 {
-	font-size: 18px;
-	font-weight: bold;
-}
-
 
 /* Pagination Style credits to http://www.hudku.com/blog/add-numbered-page-navigation-wordpress-plugin/ */
 .pagination {

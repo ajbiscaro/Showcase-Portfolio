@@ -1,0 +1,24 @@
+/***Media Queries***/@media (max-width: 768px) {	.portfolio-container[style] {
+		width: 98% !important;	}	img {		height: auto;		max-width: 100%;	}
+	ul.portfolio-list li {
+		margin-right: 20px;
+		width: 31%
+	}
+	ul.portfolio-list li.column-3 {
+		width: 31%
+	}}
+@media (max-width: 640px) { 
+	.portfolio-container[style] {
+		width: 94% !important;	}
+
+}
+@media (max-width: 484px) {
+	.portfolio-container[style] {
+		width: 90% !important;	}
+	ul.portfolio-list li {
+		width: 75%;
+	}
+	ul.portfolio-list li.column-3 {
+		width: 75%;
+	}
+}

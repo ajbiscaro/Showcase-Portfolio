@@ -33,7 +33,7 @@ function create_showcase_portfolio() {
 	$args = array(
 		'labels' => $labels,
 		'public' => true,
-		'menu_position' => 25,
+		'menu_position' => 30,
 		'supports' => array(
 			'title',
 			'thumbnail',
@@ -160,13 +160,13 @@ function display_portfolio_meta_box( $shc_portfolio ) {
 			
 			<p>
 				<label for="date_accomplished">Date Accomplished:</label> <br/>
-				<input type="text" name="date_accomplished" id="date_accomplished" value="<?php echo $date_accomplished; ?>" style="width:15%" />
+				<input type="text" name="date_accomplished" id="date_accomplished" value="<?php if( empty($date_accomplished) ){ echo date( 'm/d/Y', current_time( 'timestamp', 1 ) ); } else {echo $date_accomplished;} ?>" style="width:15%" />
 				<span class="description">format: mm/dd/yyyy</span>
 			</p>
 			
 			<p>
 				<label for="set_order">Set Order:</label> <br/>
-				<input type="text" name="set_order" value="<?php echo $set_order; ?>" class="small-text" />
+				<input type="text" name="set_order" value="<?php if( empty($set_order) ){ echo 1; } else { echo $set_order; } ?>" class="small-text" />
 			</p>
 			
 		</div>
@@ -229,6 +229,7 @@ function portfolio_settings_store() {
     register_setting('portfolio_settings', 'portfolio_img_size_w');
     register_setting('portfolio_settings', 'portfolio_img_size_h');
 	register_setting('portfolio_settings', 'portfolio_order');
+	register_setting('portfolio_settings', 'portfolio_layout');
 }
 
 function portfolio_settings_display() { ?>
@@ -240,8 +241,8 @@ function portfolio_settings_display() { ?>
 				
 				<p>
 					<label for="portfolio_container_width">Container Width:</label> <br/>
-					<input type="text" name="portfolio_container_width" class="small-text" value="<?php echo get_option('portfolio_container_width', '604'); ?>" /> 
-					<span class="description">px (default = 604)</span>		
+					<input type="text" name="portfolio_container_width" class="small-text" value="<?php echo get_option('portfolio_container_width'); ?>" /> 
+					<span class="description">px (default is set to 100% width if empty)</span>		
 				</p>
 				<p>
 					<label for="portfolio_post_per_page_list">Post per page for Single Page List:</label> <br/>
@@ -277,6 +278,14 @@ function portfolio_settings_display() { ?>
 					<span class="description">Set Order</span>
 				</p>
 				
+				<p>
+					<label for="portfolio_layout">Layout:</label><br/>
+					<input name="portfolio_layout" type="radio" value="0" <?php checked( '0', get_option( 'portfolio_layout' ) ); ?> />
+					<span class="description">Fixed</span><br/>
+					<input name="portfolio_layout" type="radio" value="1" <?php checked( '1', get_option( 'portfolio_layout' ) ); ?> />
+					<span class="description">Responsive</span>
+				</p>
+				
 				<p class="submit"><input type="submit" class="button-primary" value="Save Changes" /></p>
 			</fieldset>
 	   </form>
@@ -288,22 +297,81 @@ add_image_size('portfolio-img', get_option('portfolio_img_size_w', '600'), get_o
 
 /** Front-end **/
 
-// Create Display Shortcode
-add_shortcode( 'showcase_portfolio', 'showcase_portfolio_display' );
-function showcase_portfolio_display($attr) {
+//Display on Inside Frontpage
+add_shortcode( 'showcase_portfolio_content', 'display_content_front' );
+function display_content_front() {
+	 ob_start();
+
+	//Container width
+	$style_width = '';
+	if( get_option( 'portfolio_container_width' ) ) {
+		$style_width = 'style="width:'.get_option('portfolio_container_width').'px;"';
+	}
+	
+	$posts_per_page = 3;
+	if( get_option( 'portfolio_post_per_page_content' ) ) {
+		$posts_per_page = get_option( 'portfolio_post_per_page_content' );
+	}
+	
+	//Order Set
+	if( get_option( 'portfolio_order' ) ) {
+		if( get_option( 'portfolio_order' ) == 0 ) {
+			$meta_key = 'date_accomplished';
+			$order = 'DESC';
+		}else if( get_option( 'portfolio_order' ) == 1 ) {
+			$meta_key = 'set_order';
+			$order = 'ASC';
+		}
+	}
+   
+   $col_count=0;
+   if( !empty($meta_key) ) {
+	   $query = new WP_Query( array(
+				'post_type' => 'shc-portfolio',
+				'posts_per_page' => $posts_per_page,
+				'meta_key'=>$meta_key,
+				'orderby'=>'meta_value',
+				'order' => $order 
+		) );
+	}else{
+		$query = new WP_Query( array(
+				'post_type' => 'shc-portfolio',
+				'posts_per_page' => $posts_per_page
+		) );
+	}
+    if ( $query->have_posts() ) { ?>
+    <div class="portfolio-container" <?php echo $style_width; ?>>
+        <ul class="portfolio-list">
+            <?php while ( $query->have_posts() ) : $query->the_post(); ?>
+				<?php $col_count++; ?>
+            <li id="post-<?php the_ID(); ?>" class="column-<?php echo $col_count; ?>">
+   				<?php if ( has_post_thumbnail()) { ?>
+						<a href="<?php the_permalink() ?>"><?php the_post_thumbnail('portfolio-thumb'); ?></a>
+					<?php } else { ?>
+						<div style="background:url(<?php echo plugins_url( '/showcase-portfolio/images/no-image.jpg' ) ?>);width:<?php echo get_option('portfolio_thumb_size_w', '300'); ?>px;height:<?php echo get_option('portfolio_thumb_size_h', '225'); ?>px" title="No Image"></div>
+					<?php } ?>
+					<h3><a href="<?php the_permalink() ?>"><?php the_title(); ?></a></h3>
+					<p><?php the_excerpt(); ?></p>
+	         </li>
+            <?php endwhile;
+            wp_reset_postdata(); ?>
+        </ul>
+     </div>
+    <?php $portfolio_output = ob_get_clean();
+    return $portfolio_output;
+    }
+}
+
+//Display on Page List
+add_shortcode( 'showcase_portfolio_list', 'display_page_list' );
+function display_page_list() {
 	ob_start();
 	$paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
 
 	//Post per Page
-	$posts_per_page='';
-	if ( $attr['template']=='content' ) {
-		if( get_option( 'portfolio_post_per_page_content' ) ) {
-			$posts_per_page = get_option( 'portfolio_post_per_page_content' );
-		}
-	}else if ( $attr['template']=='list' ){
-		if( get_option( 'portfolio_post_per_page_list' ) ) {
-			$posts_per_page = get_option( 'portfolio_post_per_page_list' );
-		}
+	$posts_per_page = 5;
+	if( get_option( 'portfolio_post_per_page_list' ) ) {
+		$posts_per_page = get_option( 'portfolio_post_per_page_list' );
 	}
 	
 	//Order Set
@@ -317,103 +385,103 @@ function showcase_portfolio_display($attr) {
 		}
 	}
 	
-	$terms = get_terms("shc-portfolio-category");
-    $count = count($terms);
-    echo '<ul id="portfolio-filter">';
-    echo '<li><a href="#all" title="">All</a></li>';
-        if ( $count > 0 )
-        {   
-            foreach ( $terms as $term ) {
-                $termname = strtolower($term->name);
-                $termname = str_replace(' ', '-', $termname);
-                echo '<li><a href="#'.$termname.'" title="" rel="'.$termname.'">'.$term->name.'</a></li>';
-            }
-        }
-    echo "</ul>";
-	
-	//WP_Query data
-    $query = new WP_Query( array(
-        'post_type' => 'shc-portfolio',
-        'posts_per_page' => $posts_per_page,
-		'paged' => $paged, 
-		'meta_key'=>$meta_key,
-		'orderby'=>'meta_value',
-		'order' => $order
-    ) );
-
 	//Container width
 	$style_width = '';
 	if( get_option( 'portfolio_container_width' ) ) {
 		$style_width = 'style="width:'.get_option('portfolio_container_width').'px;"';
-	}
-	
+	} ?>
+
+	<div class="portfolio-container portfolio-page" <?php echo $style_width; ?>>
+		<?php	
+		//Sort per Category
+		 $terms = get_terms("shc-portfolio-category");
+	    $count = count($terms);
+	    echo '<ul id="portfolio-filter">';
+	    echo '<li><a href="#all" title="">All</a></li>';
+	        if ( $count > 0 )
+	        {   
+	            foreach ( $terms as $term ) {
+	                $termname = strtolower($term->name);
+	                $termname = str_replace(' ', '-', $termname);
+	                echo '<li><a href="#'.$termname.'" title="" rel="'.$termname.'">'.$term->name.'</a></li>';
+	            }
+	        }
+	    echo "</ul>";
+	    
+	    //Load post of Showcase Portfolio 
+		//WP_Query data
+		if( get_option( 'portfolio_order' ) ) {
+			$query = new WP_Query( array(
+				'post_type' => 'shc-portfolio',
+				'posts_per_page' => $posts_per_page,
+				'paged' => $paged, 
+				'meta_key'=>$meta_key,
+				'orderby'=>'meta_value',
+				'order' => $order
+			) );
+		}else{
+			$query = new WP_Query( array(
+				'post_type' => 'shc-portfolio',
+				'posts_per_page' => $posts_per_page,
+				'paged' => $paged
+			) );
+		}
+
+
+	$col_count=0;
 	//Display HTML
 	if ( $query->have_posts() ) { ?> 
-		<div class="portfolio-container" <?php echo $style_width; ?>>
-			<ul id="portfolio-list" class="portfolio-post-list">
-				<?php while ( $query->have_posts() ) : $query->the_post(); ?>
-				<?php
-                        $terms = get_the_terms( $post->ID, 'shc-portfolio-category' );
-                                 
-                        if ( $terms && ! is_wp_error( $terms ) ) : 
-                            $links = array();
+		<ul id="portfolio-list" class="portfolio-list">
+			<?php while ( $query->have_posts() ) : $query->the_post(); ?>
+			<?php
+            $terms = get_the_terms( $post->ID, 'shc-portfolio-category' );
+                     
+            if ( $terms && ! is_wp_error( $terms ) ) : 
+                $links = array();
  
-                            foreach ( $terms as $term ) 
-                            {
-                                $links[] = $term->name;
-                            }
-                            $links = str_replace(' ', '-', $links); 
-                            $tax = join( " ", $links );     
-                        else :  
-                            $tax = '';  
-                        endif;
-                ?>
-                         
-                <?php $infos = get_post_custom_values('_url'); ?>
-				<li id="post-<?php the_ID(); ?>" class="portfolio-item <?php echo strtolower($tax); ?> all portfolio-post-item">
-					<div class="portfolio-item-thumb">
-						<?php if ( has_post_thumbnail()) { ?>
-							<?php the_post_thumbnail('portfolio-thumb'); ?>
-						<?php } else { ?>
-							<div style="background:url(<?php echo plugins_url( '/showcase-portfolio/images/no-image.jpg' ) ?>);width:<?php echo get_option('portfolio_thumb_size_w', '300'); ?>px;height:<?php echo get_option('portfolio_thumb_size_h', '225'); ?>px" title="No Image"></div>
-						<?php } ?>
-					</div>
-					<div class="portfolio-item-detail">
-						<h3><a href="<?php the_permalink() ?>"><?php the_title(); ?></a></h3>
-						<div class="portfolio-item-content">
-							<?php the_excerpt(); ?>
-						</div>
-						
-						<!-- Showcase Portfolio Meta -->
-						<?php if(get_post_meta( get_the_ID(), 'client_name', true) ) { ?>
-							<p class="portfolio-text"><strong>Client's Name:</strong><span class="portfolio-text-desc"><?php echo esc_html( get_post_meta( get_the_ID(), 'client_name', true ) ); ?></span></p>
-						<?php } ?>
-						
-						<?php if(get_post_meta( get_the_ID(), 'my_role', true) ) { ?>
-							<p class="portfolio-text"><strong>My Role:</strong><span class="portfolio-text-desc"><?php echo esc_html( get_post_meta( get_the_ID(), 'my_role', true ) ); ?><span></p>
-						<?php } ?>
-						
-						<?php if(get_post_meta( get_the_ID(), 'portfolio_link', true) ) { ?>
-							<p class="portfolio-text"><a href="<?php echo esc_html( get_post_meta( get_the_ID(), 'portfolio_link', true ) ); ?>" class="button">Link to Website</a></p>
-						<?php } ?>
+                foreach ( $terms as $term ) 
+                {
+                    $links[] = $term->name;
+                }
+                $links = str_replace(' ', '-', $links); 
+                $tax = join( " ", $links );     
+            else :  
+                $tax = '';  
+            endif;
+           ?>           
+         <?php $infos = get_post_custom_values('_url'); ?>
+         
+		 	<?php $col_count++; ?>
+			<li id="post-<?php the_ID(); ?>" class="<?php echo strtolower($tax); ?> all column-<?php echo $col_count; ?>">
+				<div class="portfolio-item">
+					<?php if ( has_post_thumbnail()) { ?>
+						<a href="<?php the_permalink() ?>"><?php the_post_thumbnail('portfolio-thumb'); ?></a>
+					<?php } else { ?>
+						<div style="background:url(<?php echo plugins_url( '/showcase-portfolio/images/no-image.jpg' ) ?>);width:<?php echo get_option('portfolio_thumb_size_w', '300'); ?>px;height:<?php echo get_option('portfolio_thumb_size_h', '225'); ?>px" title="No Image"></div>
+					<?php } ?>
 					
-					</div>
-				</li>
-				<?php endwhile; ?>
-				<?php
-					if($attr['template']=='list') { 
-						portfolio_pagination($query->max_num_pages,$paged);
-					}
-				?> 
-				<?php wp_reset_postdata(); ?>
-				<script>
-					jQuery(document).ready(function() {	
-						jQuery("#portfolio-list").filterable();
-					});
-				</script>
-			</ul>
-		</div>
-    <?php $portfolio_output = ob_get_clean();
+					<h3><a href="<?php the_permalink() ?>"><?php the_title(); ?></a></h3>
+					<p><?php the_excerpt(); ?></p>
+				</div>
+			</li>
+			<?php if ( $col_count == '3' ) $col_count=0; ?>
+			
+			<?php endwhile; ?>
+			<?php
+					portfolio_pagination($query->max_num_pages,$paged);
+			?> 
+			
+			<?php wp_reset_postdata(); ?>
+			
+			<script>
+				jQuery(document).ready(function() {	
+					jQuery("#portfolio-list").filterable();
+				});
+			</script>
+			
+		</ul>
+	</div>
+   <?php $portfolio_output = ob_get_clean();
     return $portfolio_output;
     }
 }
@@ -471,6 +539,10 @@ function showcase_portfolio_styles() {
     //Style.css is relative to the current file
     wp_register_style( 'portfolio-style', plugins_url('/css/style.css', __FILE__) );
     wp_enqueue_style( 'portfolio-style' );
+	if( get_option( 'portfolio_layout' ) == 1 ) {
+		wp_register_style( 'responsive-style', plugins_url('/css/responsive.css', __FILE__) );
+		wp_enqueue_style( 'responsive-style' );
+	}
 }
 
 add_action( 'wp_enqueue_scripts', 'showcase_portfolio_scripts' );
